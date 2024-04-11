@@ -1,4 +1,13 @@
 {
+  "name": "CCM Meta",
+  "version": "1.0.0",
+  "description": "A brief description of your app",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "author": "Your Name",
+  "license": "ISC",
   "dependencies": {
     "axios": "^1.6.8",
     "dotenv": "^16.4.5",

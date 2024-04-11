@@ -2,24 +2,59 @@ require('dotenv').config();
 const express = require('express');
 const fs = require('fs');
 const { ethers } = require('ethers');
-const axios = require('axios');const app = express();
+const axios = require('axios'); const app = express();
 const PORT = 3002;
 
+const contractABI = require('./contractABI.js');
 // Define the contract address and network configuration
-const CONTRACT_ADDRESS = '0x576410Dc6EcB0Ab0546D58f5D450fA43825Fc1b2';
+const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS;
 const NETWORK = process.env.NETWORK || 'testnet'; // Default to mainnet if not specified
 
 // Define the network URLs for testnet and mainnet using Alchemy
 const networkUrls = {
-    mainnet: 'https://eth-mainnet.alchemyapi.io/v2/YOUR_ALCHEMY_API_KEY',
-    testnet: 'https://eth-sepolia.g.alchemy.com/v2/JMn6DW8NwXFnlHIdquy9AFzlq8PTB-Xn' // Example for Rinkeby testnet
+    mainnet: process.env.MAINNET_URL,
+    testnet: process.env.TESTNET_URL // Example for Rinkeby testnet
 };
-console.log(ethers); // Should log the ethers object
-console.log(ethers.providers); // Should log the providers object
-console.log(networkUrls[NETWORK]); // Should log the network URL
 
 // Initialize the provider based on the network configuration
 const provider = new ethers.JsonRpcProvider(networkUrls[NETWORK]);
+const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, provider);
+
+
+
+// Listen for the TokenMinted event
+contract.on("TokenMinted", async (tokenId, recipient, isPhysicalToken, isWhitelisted, isDiscounted, publicMint, mintAsset) => {
+    console.log(`Token Minted: ${tokenId}`);
+    console.log(tokenId, recipient, isPhysicalToken, isWhitelisted, isDiscounted, publicMint, mintAsset);
+
+    // Prepare the data to be sent to ceylabs.io/ccmhyp
+    const dataToSend = {
+        tokenId:`${tokenId}`,
+        recipient:recipient.toString(),
+        isPhysicalToken,
+        isWhitelisted,
+        isDiscounted,
+        publicMint,
+        mintAsset:`${mintAsset}`
+    };
+
+    console.log(dataToSend);
+
+    const ceylabsResponse = await axios.post('https://ceylabs.io/ccmhyp/index.php', dataToSend);
+
+    console.log('Main parameters sent to ceylabs.io/ccmhyp:', ceylabsResponse.data);
+
+    // Generate metadata for the newly minted token
+    const metadata = await generateNFTMetadata(tokenId, "SomeTicketType", recipient); // Adjust the ticket type as needed
+    fs.writeFile(`./metadata/${tokenId}.json`, JSON.stringify(metadata), (err) => {
+        if (err) {
+            console.error(err);
+            // Handle error
+        } else {
+            console.log(`Metadata created for token ${tokenId}`);
+        }
+    });
+});
 
 app.use(express.json());
 
@@ -32,7 +67,7 @@ app.post('/create-metadata', async (req, res) => {
 
     try {
         const metadata = await generateNFTMetadata(id, ticketType, userAddress);
-        fs.writeFile(`./metadata/${id}.json`, JSON.stringify(metadata), (err) => {
+        fs.writeFile(`./metadata/${id}.json`, JSON.stringify(metadata, null, 4), (err) => {
             if (err) {
                 console.error(err);
                 return res.status(500).json({ message: 'Error writing file' });
@@ -58,78 +93,34 @@ app.get('/metadata/:id', (req, res) => {
 });
 
 
-async function generateNFTMetadata(id, ticketType, userAddress) {
-    const contractABI = [
-        {
-            "inputs": [
-                {
-                    "internalType": "address",
-                    "name": "addr",
-                    "type": "address"
-                }
-            ],
-            "name": "isAddressWhitelisted",
-            "outputs": [
-                {
-                    "internalType": "bool",
-                    "name": "",
-                    "type": "bool"
-                }
-            ],
-            "stateMutability": "view",
-            "type": "function"
-        },
-        {
-            "inputs": [
-                {
-                    "internalType": "address",
-                    "name": "addr",
-                    "type": "address"
-                }
-            ],
-            "name": "isAddressDiscounted",
-            "outputs": [
-                {
-                    "internalType": "bool",
-                    "name": "",
-                    "type": "bool"
-                }
-            ],
-            "stateMutability": "view",
-            "type": "function"
-        }
-    ]
-    ; // Your contract ABI here
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, contractABI, provider);
 
+async function generateNFTMetadata(tokenId, isPhysicalToken, isDiscounted) {
     try {
-        const isWhitelisted = await contract.isAddressWhitelisted(userAddress);
-        const isDiscounted = await contract.isAddressDiscounted(userAddress);
 
         // Fetch the current block height from Mempool.space using Axios
         const response = await axios.get('https://mempool.space/api/blocks/tip/height');
         const blockHeight = response.data;
 
         const nft = {
-            description: `Ceylon Crypto Meetup - Yacht Party 2024: where Sri Lanka's crypto community meets, innovates, and celebrates amidst the anticipation of the 2024 halving event`,
+            description: `Ceylon Crypto Meetup - Yacht Party 2024 #${tokenId}`,
             external_url: `https://ceylabs.io/`,
-            image: `https://api.pudgypenguins.io/lil/image/${id}`,
-            name: `Ticket #${id}`,
+            image: `https://ceylabs.io/ccm/image/${tokenId}`,
+            name: `Ticket #${tokenId}`,
             attributes: [
                 { trait_type: 'Event ID', value: '2' },
                 { trait_type: 'Event Type', value: 'IRL' },
-                { trait_type: 'Location', value: 'Somewhere in the sea on a yacht' },
-                { trait_type: 'Participation', value: 'In-Person' },
-                { trait_type: 'Ticket ID', value: `${id}` },
-                { trait_type: 'Ticket Type', value: `${ticketType}` },
+                { trait_type: 'Location', value: 'Mirissa, Sri Lanka' },
+                { trait_type: 'Participation', value: isPhysicalToken ? 'In Person' : 'Virtual' },
+                { trait_type: 'Ticket ID', value: `${tokenId}` },
                 { trait_type: 'CCM Count', value: isDiscounted ? '2' : '1' }, // Set CCM count based on discounted state
-                { trait_type: 'Block Height', value: blockHeight } // Include the current block height
+                { display_type: 'number', trait_type: 'Block Height', value: blockHeight } // Include the current block height
+
             ]
         };
 
         return nft;
     } catch (error) {
-        console.error("Error interacting with the contract or fetching block height:", error);
+        console.error("Error fetching block height:", error);
         throw error; // Or handle the error as needed
     }
 }
