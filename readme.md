@@ -21,28 +21,28 @@ This project is a simple Node.js application that generates metadata for Ceylon 
 ## Installation
 
 1. Clone the repository:
-git clone https://github.com/your-username/ceylon-crypto-meetup-nft-metadata-generator.git
+   git clone https://github.com/your-username/ceylon-crypto-meetup-nft-metadata-generator.git
 
 Edit
 Full Screen
 Copy code
 
 2. Navigate to the project directory:
-cd ceylon-crypto-meetup-nft-metadata-generator
+   cd ceylon-crypto-meetup-nft-metadata-generator
 
 Edit
 Full Screen
 Copy code
 
 3. Install the dependencies:
-npm install
+   npm install
 
 Edit
 Full Screen
 Copy code
 
 4. Create a `.env` file in the project root directory and add the following variables:
-NETWORK=<your_network> ALCHEMY_API_KEY=<your_alchemy_api_key>
+   NETWORK=<your_network> ALCHEMY_API_KEY=<your_alchemy_api_key>
 
 Edit
 Full Screen
