@@ -167,6 +167,7 @@ async function generateNFTMetadata(tokenId, isPhysicalToken, isDiscounted) {
     throw error; // Or handle the error as needed
   }
 }
+
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

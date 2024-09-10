@@ -1,18 +1,16 @@
 {
-  "name": "CCM Meta",
+  "name": "ccm-yachtparty",
   "version": "1.0.0",
-  "description": "A brief description of your app",
+  "description": "A service to create metadata of minted NFTs",
   "main": "app.js",
   "scripts": {
     "start": "node app.js"
   },
-  "author": "Your Name",
-  "license": "ISC",
+  "license": "MIT",
   "dependencies": {
     "axios": "^1.6.8",
     "dotenv": "^16.4.5",
     "ethers": "^6.11.1",
-    "express": "^4.19.2",
-    "node-fetch": "^3.3.2"
+    "express": "^4.19.2"
   }
 }
